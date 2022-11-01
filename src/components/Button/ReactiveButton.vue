@@ -1,10 +1,13 @@
 <template>
   <a-button
-    :type="computedType"
-    @click="handleClick"
+    :block="block"
     :icon="computedIcon"
     :loading="loading"
-  >{{ computedText }}</a-button>
+    :size="size"
+    :type="computedType"
+    @click="handleClick"
+    >{{ computedText }}
+  </a-button>
 </template>
 <script>
 export default {
@@ -17,6 +20,14 @@ export default {
     icon: {
       type: String,
       default: null
+    },
+    size: {
+      type: String,
+      default: 'default'
+    },
+    block: {
+      type: Boolean,
+      default: false
     },
     loading: {
       type: Boolean,
@@ -56,7 +67,7 @@ export default {
           this.loaded = false
           this.hasError = false
           this.$emit('callback')
-        }, 800)
+        }, 400)
       }
     }
   },

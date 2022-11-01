@@ -1,56 +1,49 @@
-const path = require('path')
-const webpack = require('webpack')
+const pkg = require('./package.json')
 
-function resolve(dir) {
-  return path.join(__dirname, dir)
-}
+const { defineConfig } = require('@vue/cli-service')
+const dynamicThemePlugin = require('./src/webpack/dynamicTheme.js')
 
-// vue.config.js
-module.exports = {
+const CompressionPlugin = require('compression-webpack-plugin')
+const productionGzipExtensions = /\.(js|css|json|txt|html|ico|svg)(\?.*)?$/i
+
+module.exports = defineConfig({
   publicPath: process.env.PUBLIC_PATH,
-  configureWebpack: {
-    plugins: [
-      new webpack.IgnorePlugin(/^\.\/locale$/, /moment$/)
-    ]
+
+  chainWebpack: config => {
+    config.plugin('html').tap(args => {
+      args[0].version = pkg.version
+      return args
+    })
+    if (process.env.NODE_ENV === 'production') {
+      config.plugin('compressionPlugin').use(
+        new CompressionPlugin({
+          filename: '[path][base].gz',
+          algorithm: 'gzip',
+          test: productionGzipExtensions,
+          threshold: 10240,
+          minRatio: 0.8,
+          deleteOriginalAssets: false
+        })
+      )
+    }
   },
 
-  chainWebpack: (config) => {
-    config.resolve.alias
-      .set('@$', resolve('src'))
-      .set('@api', resolve('src/api'))
-      .set('@assets', resolve('src/assets'))
-      .set('@comp', resolve('src/components'))
-      .set('@views', resolve('src/views'))
-      .set('@layout', resolve('src/layout'))
-      .set('@static', resolve('src/static'))
-
-    const svgRule = config.module.rule('svg')
-    svgRule.uses.clear()
-    svgRule
-      .oneOf('inline')
-      .resourceQuery(/inline/)
-      .use('vue-svg-icon-loader')
-      .loader('vue-svg-icon-loader')
-      .end()
-      .end()
-      .oneOf('external')
-      .use('file-loader')
-      .loader('file-loader')
-      .options({
-        name: 'assets/[name].[hash:8].[ext]'
-      })
+  configureWebpack: {
+    plugins: [dynamicThemePlugin()]
   },
 
   css: {
     loaderOptions: {
       less: {
+        modifyVars: {
+          'border-radius-base': '2px'
+        },
         javascriptEnabled: true
       }
     }
   },
 
-  lintOnSave: undefined,
-  // babel-loader no-ignore node_modules/*
+  lintOnSave: false,
   transpileDependencies: [],
   productionSourceMap: false
-}
+})

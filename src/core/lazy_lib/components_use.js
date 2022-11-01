@@ -1,19 +1,24 @@
 import Vue from 'vue'
 import {
+  Affix,
+  Alert,
   Anchor,
   AutoComplete,
-  Alert,
   Avatar,
   Badge,
   Breadcrumb,
   Button,
   Card,
-  Collapse,
   Checkbox,
   Col,
+  Collapse,
+  Comment,
+  ConfigProvider,
   DatePicker,
   Divider,
+  Drawer,
   Dropdown,
+  Empty,
   Form,
   FormModel,
   Icon,
@@ -22,37 +27,36 @@ import {
   Layout,
   List,
   LocaleProvider,
-  message,
   Menu,
+  message,
   Modal,
   notification,
+  PageHeader,
   Pagination,
   Popconfirm,
   Popover,
   Progress,
   Radio,
+  Result,
   Row,
   Select,
+  Skeleton,
+  Space,
   Spin,
+  Steps,
   Switch,
   Table,
-  Tree,
-  TreeSelect,
   Tabs,
   Tag,
+  Timeline,
   TimePicker,
   Tooltip,
-  Drawer,
-  Skeleton,
-  Comment,
-  ConfigProvider,
-  Timeline,
-  Steps,
-  Empty,
-  Result,
-  Space
+  Tree,
+  TreeSelect,
+  Descriptions
 } from 'ant-design-vue'
 
+Vue.use(Affix)
 Vue.use(Anchor)
 Vue.use(AutoComplete)
 Vue.use(Alert)
@@ -78,6 +82,7 @@ Vue.use(List)
 Vue.use(LocaleProvider)
 Vue.use(Menu)
 Vue.use(Modal)
+Vue.use(PageHeader)
 Vue.use(Pagination)
 Vue.use(Popconfirm)
 Vue.use(Popover)
@@ -102,6 +107,12 @@ Vue.use(Steps)
 Vue.use(Empty)
 Vue.use(Result)
 Vue.use(Space)
+Vue.use(Descriptions)
+
+// message config
+message.config({
+  maxCount: 1
+})
 
 Vue.prototype.$message = message
 Vue.prototype.$notification = notification

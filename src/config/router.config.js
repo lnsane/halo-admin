@@ -1,5 +1,5 @@
 // eslint-disable-next-line
-import { BasicLayout, PageView } from '@/layouts'
+import { BasicLayout, BlankLayout, PageView } from '@/layouts'
 
 export const asyncRouterMap = [
   {
@@ -21,8 +21,8 @@ export const asyncRouterMap = [
       {
         path: '/posts',
         name: 'Posts',
+        component: BlankLayout,
         redirect: '/posts/list',
-        component: PageView,
         meta: { title: '文章', icon: 'form' },
         children: [
           {
@@ -33,9 +33,16 @@ export const asyncRouterMap = [
           },
           {
             path: '/posts/write',
-            name: 'PostEdit',
+            name: 'PostWrite',
             component: () => import('@/views/post/PostEdit'),
             meta: { title: '写文章', hiddenHeaderContent: false, keepAlive: false }
+          },
+          {
+            path: '/posts/edit',
+            name: 'PostEdit',
+            hidden: true,
+            component: () => import('@/views/post/PostEdit'),
+            meta: { title: '编辑文章', hiddenHeaderContent: false, keepAlive: false }
           },
           {
             path: '/categories',
@@ -56,7 +63,7 @@ export const asyncRouterMap = [
       {
         path: '/sheets',
         name: 'Sheets',
-        component: PageView,
+        component: BlankLayout,
         redirect: '/sheets/list',
         meta: { title: '页面', icon: 'read' },
         children: [
@@ -68,9 +75,16 @@ export const asyncRouterMap = [
           },
           {
             path: '/sheets/write',
-            name: 'SheetEdit',
+            name: 'SheetWrite',
             component: () => import('@/views/sheet/SheetEdit'),
             meta: { title: '新建页面', hiddenHeaderContent: false, keepAlive: false }
+          },
+          {
+            path: '/sheets/edit',
+            name: 'SheetEdit',
+            hidden: true,
+            component: () => import('@/views/sheet/SheetEdit'),
+            meta: { title: '编辑页面', hiddenHeaderContent: false, keepAlive: false }
           },
           {
             path: '/sheets/links',
@@ -116,7 +130,7 @@ export const asyncRouterMap = [
       {
         path: '/interface',
         name: 'Interface',
-        component: PageView,
+        component: BlankLayout,
         redirect: '/interface/themes',
         meta: { title: '外观', icon: 'skin' },
         children: [
@@ -127,16 +141,22 @@ export const asyncRouterMap = [
             meta: { title: '主题', hiddenHeaderContent: false }
           },
           {
-            path: '/interface/menus',
-            name: 'MenuList',
-            component: () => import('@/views/interface/MenuList'),
-            meta: { title: '菜单', hiddenHeaderContent: false }
+            path: '/interface/themes/setting',
+            name: 'ThemeSetting',
+            component: () => import('@/views/interface/ThemeSetting'),
+            meta: { title: '主题设置', hiddenHeaderContent: false }
           },
           {
             path: '/interface/themes/edit',
             name: 'ThemeEdit',
             component: () => import('@/views/interface/ThemeEdit'),
             meta: { title: '主题编辑', hiddenHeaderContent: false }
+          },
+          {
+            path: '/interface/menus',
+            name: 'MenuList',
+            component: () => import('@/views/interface/MenuList'),
+            meta: { title: '菜单设置', hiddenHeaderContent: false }
           }
         ]
       },
@@ -162,7 +182,7 @@ export const asyncRouterMap = [
       {
         path: '/system',
         name: 'System',
-        component: PageView,
+        component: BlankLayout,
         redirect: '/system/options',
         meta: { title: '系统', icon: 'setting' },
         children: [
@@ -185,13 +205,13 @@ export const asyncRouterMap = [
             component: () => import('@/views/system/ToolList'),
             meta: { title: '小工具', hiddenHeaderContent: false }
           },
-          // {
-          //   path: '/system/tools/staticpages',
-          //   name: 'StaticPagesManage',
-          //   hidden: true,
-          //   component: () => import('@/views/system/staticpages/StaticPagesManage'),
-          //   meta: { title: '静态部署', hiddenHeaderContent: false }
-          // },
+          {
+            path: '/system/actionlogs',
+            name: 'SystemActionLogs',
+            hidden: true,
+            component: () => import('@/views/system/ActionLogs'),
+            meta: { title: '操作日志', hiddenHeaderContent: false }
+          },
           {
             path: '/system/about',
             name: 'About',
@@ -201,6 +221,13 @@ export const asyncRouterMap = [
         ]
       }
     ]
+  },
+  {
+    path: '/interface/themes/setting/visual',
+    name: 'ThemeVisualSetting',
+    hidden: true,
+    component: () => import('@/views/interface/ThemeVisualSetting'),
+    meta: { title: '主题设置', hiddenHeaderContent: false }
   },
   {
     path: '*',

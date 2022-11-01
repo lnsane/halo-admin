@@ -1,13 +1,13 @@
 export default {
   primaryColor: '#1890FF',
   navTheme: 'dark',
-  layout: 'topmenu',
+  layout: 'sidemenu',
   contentWidth: 'Fixed',
   fixedHeader: false,
-  fixSiderbar: false,
+  fixedSidebar: true,
   autoHideHeader: false,
   storageOptions: {
-    namespace: 'halo__',
+    namespace: 'HALO__',
     name: 'ls',
     storage: 'local'
   }

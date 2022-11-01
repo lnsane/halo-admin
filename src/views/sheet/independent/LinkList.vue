@@ -1,345 +1,169 @@
 <template>
-  <div>
+  <page-view>
+    <template #extra>
+      <a-space>
+        <a-button type="primary" @click="form.visible = true">添加</a-button>
+      </a-space>
+    </template>
+    <LinkCreateModal
+      :form_.sync="form"
+      :teams="computedTeams"
+      @close="
+        form.visible = false
+        form.model = {}
+      "
+      @createOrUpdateLink="handleCreateOrUpdateLink"
+      @saved="handleSavedCallback"
+    />
     <a-row :gutter="12">
-      <a-col
-        :xl="10"
-        :lg="10"
-        :md="10"
-        :sm="24"
-        :xs="24"
-        class="pb-3"
-      >
-        <a-card
-          :title="title"
-          :bodyStyle="{ padding: '16px' }"
+      <a-col :span="24" class="pb-3">
+        <a-empty v-if="linkTeam.length === 0" />
+        <draggable
+          v-else
+          :list="linkTeam"
+          class="list-group"
+          group="pull: 'false', put: false"
+          handle=".mover"
+          v-bind="dragOptions"
+          @update="handleUpdateInBatch"
         >
-          <a-form-model
-            ref="linkForm"
-            :model="form.model"
-            :rules="form.rules"
-            layout="horizontal"
-          >
-            <a-form-model-item
-              label="网站名称："
-              prop="name"
+          <transition-group type="transition">
+            <a-card
+              v-for="team in linkTeam"
+              :key="team.team"
+              :bodyStyle="{ padding: '16px' }"
+              style="margin-bottom: 10px"
             >
-              <a-input v-model="form.model.name" />
-            </a-form-model-item>
-            <a-form-model-item
-              label="网站地址："
-              help="* 需要加上 http://"
-              prop="url"
-            >
-              <a-input v-model="form.model.url">
-                <!-- <a
-                  href="javascript:void(0);"
-                  slot="addonAfter"
-                  @click="handleParseUrl"
-                >
-                  <a-icon type="sync" />
-                </a> -->
-              </a-input>
-            </a-form-model-item>
-            <a-form-model-item
-              label="Logo："
-              prop="logo"
-            >
-              <a-input v-model="form.model.logo" />
-            </a-form-model-item>
-            <a-form-model-item
-              label="分组："
-              prop="team"
-            >
-              <a-auto-complete
-                :dataSource="teams"
-                v-model="form.model.team"
-                allowClear
-              />
-            </a-form-model-item>
-            <a-form-model-item
-              label="排序编号："
-              prop="priority"
-            >
-              <a-input-number
-                :min="0"
-                v-model="form.model.priority"
-                style="width:100%"
-              />
-            </a-form-model-item>
-            <a-form-model-item
-              label="描述："
-              prop="description"
-            >
-              <a-input
-                type="textarea"
-                :autoSize="{ minRows: 5 }"
-                v-model="form.model.description"
-              />
-            </a-form-model-item>
-            <a-form-model-item>
-              <ReactiveButton
-                v-if="!isUpdateMode"
-                type="primary"
-                @click="handleCreateOrUpdateLink"
-                @callback="handleSavedCallback"
-                :loading="form.saving"
-                :errored="form.errored"
-                text="保存"
-                loadedText="保存成功"
-                erroredText="保存失败"
-              ></ReactiveButton>
-              <a-button-group v-else>
-                <ReactiveButton
-                  type="primary"
-                  @click="handleCreateOrUpdateLink"
-                  @callback="handleSavedCallback"
-                  :loading="form.saving"
-                  :errored="form.errored"
-                  text="更新"
-                  loadedText="更新成功"
-                  erroredText="更新失败"
-                ></ReactiveButton>
-                <a-button
-                  type="dashed"
-                  @click="form.model = {}"
-                  v-if="isUpdateMode"
-                >返回添加</a-button>
-              </a-button-group>
-            </a-form-model-item>
-          </a-form-model>
-        </a-card>
-      </a-col>
-      <a-col
-        :xl="14"
-        :lg="14"
-        :md="14"
-        :sm="24"
-        :xs="24"
-        class="pb-3"
-      >
-        <a-card
-          title="所有友情链接"
-          :bodyStyle="{ padding: '16px' }"
-        >
-          <!-- Mobile -->
-          <a-list
-            v-if="isMobile()"
-            itemLayout="vertical"
-            size="large"
-            :dataSource="table.data"
-            :loading="table.loading"
-          >
-            <a-list-item
-              slot="renderItem"
-              slot-scope="item, index"
-              :key="index"
-            >
-              <template slot="actions">
-                <a-dropdown
-                  placement="topLeft"
-                  :trigger="['click']"
-                >
-                  <span>
-                    <a-icon type="bars" />
-                  </span>
-                  <a-menu slot="overlay">
-                    <a-menu-item>
-                      <a
-                        href="javascript:void(0);"
-                        @click="form.model = item"
-                      >编辑</a>
-                    </a-menu-item>
-                    <a-menu-item>
-                      <a-popconfirm
-                        :title="'你确定要删除【' + item.name + '】链接？'"
-                        @confirm="handleDeleteLink(item.id)"
-                        okText="确定"
-                        cancelText="取消"
-                      >
-                        <a href="javascript:;">删除</a>
-                      </a-popconfirm>
-                    </a-menu-item>
-                  </a-menu>
-                </a-dropdown>
+              <template #title>
+                {{ team.team ? team.team : '默认分组' }}
+                <a-icon class="cursor-move mover ml-1 list-group-item" type="bars" />
               </template>
-              <template slot="extra">
-                <span>
-                  {{ item.team }}
-                </span>
-              </template>
-              <a-list-item-meta>
-                <template slot="description">
-                  {{ item.description }}
-                </template>
-                <span
-                  slot="title"
-                  style="max-width: 300px;display: block;white-space: nowrap;overflow: hidden;text-overflow: ellipsis;"
-                >
-                  {{ item.name }}
-                </span>
-              </a-list-item-meta>
-              <a
-                :href="item.url"
-                target="_blank"
-              >{{ item.url }}</a>
-            </a-list-item>
-          </a-list>
-          <!-- Desktop -->
-          <a-table
-            v-else
-            :columns="table.columns"
-            :dataSource="table.data"
-            :loading="table.loading"
-            :rowKey="link => link.id"
-            :scrollToFirstRowOnChange="true"
-          >
-            <template
-              slot="url"
-              slot-scope="text"
-            >
-              <a
-                target="_blank"
-                :href="text"
-              >{{ text }}</a>
-            </template>
-            <ellipsis
-              :length="15"
-              tooltip
-              slot="name"
-              slot-scope="text"
-            >{{ text }}</ellipsis>
-            <span
-              slot="action"
-              slot-scope="text, record"
-            >
-              <a
-                href="javascript:void(0);"
-                @click="form.model = record"
-              >编辑</a>
-              <a-divider type="vertical" />
-              <a-popconfirm
-                :title="'你确定要删除【' + record.name + '】链接？'"
-                @confirm="handleDeleteLink(record.id)"
-                okText="确定"
-                cancelText="取消"
+              <draggable
+                :list="team.links"
+                group="link"
+                v-bind="dragOptions"
+                @add="modal.lastAdd = team"
+                @remove="handleRemove($event, team)"
+                @update="handleUpdateInBatch"
               >
-                <a href="javascript:;">删除</a>
-              </a-popconfirm>
-            </span>
-          </a-table>
-        </a-card>
+                <transition-group
+                  class="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
+                  type="transition"
+                >
+                  <div
+                    v-for="link in team.links"
+                    :key="link.name"
+                    class="cursor-move relative flex items-center space-x-3 rounded border border-solid border-gray-300 bg-white px-2 py-2 shadow-sm hover:border-gray-400 hover:shadow"
+                  >
+                    <div v-if="link.logo" class="flex-shrink-0">
+                      <a-avatar :src="link.logo" class="h-12 w-12 rounded-full" size="large" />
+                    </div>
+                    <div class="flex flex-col gap-y-1.5 overflow-hidden">
+                      <p class="mb-0 truncate text-sm font-medium text-gray-900 truncate">
+                        {{ link.name }}
+                      </p>
+                      <p class="mb-0 truncate text-sm text-gray-500">{{ link.description }}</p>
+                    </div>
+                    <div class="absolute top-2 right-2 cursor-pointer hover:text-blue-600">
+                      <a-dropdown>
+                        <div style="width: 30px; display: flex; justify-content: flex-end">
+                          <a-icon type="more" />
+                        </div>
+                        <template #overlay>
+                          <a-menu>
+                            <a-menu-item @click="handleEdit(link)"> 编辑</a-menu-item>
+                            <a-menu-item @click="handleDeleteLink(link.id)"> 删除</a-menu-item>
+                          </a-menu>
+                        </template>
+                      </a-dropdown>
+                    </div>
+                  </div>
+                </transition-group>
+              </draggable>
+            </a-card>
+          </transition-group>
+        </draggable>
       </a-col>
     </a-row>
-    <div style="position: fixed;bottom: 30px;right: 30px;">
+    <div style="position: fixed; bottom: 30px; right: 30px">
       <a-button
-        type="primary"
-        shape="circle"
         icon="setting"
+        shape="circle"
         size="large"
-        @click="optionsModal.visible=true"
+        type="primary"
+        @click="optionsModal.visible = true"
       ></a-button>
     </div>
-    <a-modal
-      v-model="optionsModal.visible"
-      title="页面设置"
-      :afterClose="() => optionsModal.visible = false"
-    >
+    <a-modal v-model="optionsModal.visible" :afterClose="() => (optionsModal.visible = false)" title="页面设置">
       <template slot="footer">
-        <a-button
-          key="submit"
-          type="primary"
-          @click="handleSaveOptions()"
-        >保存</a-button>
+        <a-button key="submit" type="primary" @click="handleSaveOptions()">保存</a-button>
       </template>
       <a-form layout="vertical">
-        <a-form-item
-          label="页面标题："
-          help="* 需要主题进行适配"
-        >
+        <a-form-item help="* 需要主题进行适配" label="页面标题：">
           <a-input v-model="optionsModal.data.links_title" />
         </a-form-item>
       </a-form>
     </a-modal>
-  </div>
+  </page-view>
 </template>
 
 <script>
+import { PageView } from '@/layouts'
 import { mapActions } from 'vuex'
-import { mixin, mixinDevice } from '@/utils/mixin.js'
-import optionApi from '@/api/option'
-import linkApi from '@/api/link'
-const columns = [
-  {
-    title: '名称',
-    dataIndex: 'name',
-    ellipsis: true,
-    scopedSlots: { customRender: 'name' }
-  },
-  {
-    title: '网址',
-    dataIndex: 'url',
-    ellipsis: true,
-    scopedSlots: { customRender: 'url' }
-  },
-  {
-    title: '分组',
-    ellipsis: true,
-    dataIndex: 'team'
-  },
-  {
-    title: '排序',
-    dataIndex: 'priority'
-  },
-  {
-    title: '操作',
-    key: 'action',
-    scopedSlots: { customRender: 'action' }
-  }
-]
+import draggable from 'vuedraggable'
+import { mixin, mixinDevice } from '@/mixins/mixin.js'
+import apiClient from '@/utils/api-client'
+import LinkCreateModal from '@/views/sheet/components/LinkCreateModal'
+import { Modal } from 'ant-design-vue'
 export default {
   mixins: [mixin, mixinDevice],
+  components: {
+    LinkCreateModal,
+    PageView,
+    draggable
+  },
   data() {
     return {
+      modal: {
+        toDelete: [],
+        visible: false,
+        newIndex: null,
+        lastAdd: null,
+        lastRemove: null
+      },
       table: {
-        columns,
         data: [],
         loading: false
       },
       form: {
+        visible: false,
         model: {},
         saving: false,
-        errored: false,
-        rules: {
-          name: [
-            { required: true, message: '* 友情链接名称不能为空', trigger: ['change'] },
-            { max: 255, message: '* 友情链接名称的字符长度不能超过 255', trigger: ['change'] }
-          ],
-          url: [
-            { required: true, message: '* 友情链接地址不能为空', trigger: ['change'] },
-            { max: 1023, message: '* 友情链接地址的字符长度不能超过 1023', trigger: ['change'] },
-            { type: 'url', message: '* 友情链接地址格式有误', trigger: ['change'] }
-          ],
-          logo: [{ max: 1023, message: '* 友情链接 Logo 的字符长度不能超过 1023', trigger: ['change'] }],
-          description: [{ max: 255, message: '* 友情链接描述的字符长度不能超过 255', trigger: ['change'] }],
-          team: [{ max: 255, message: '* 友情链接分组的字符长度 255', trigger: ['change'] }]
-        }
+        errored: false
       },
       optionsModal: {
         visible: false,
-        data: []
+        data: {}
       },
-      teams: []
+      teams: [],
+      linkTeam: []
     }
   },
   computed: {
-    title() {
-      if (this.isUpdateMode) {
-        return '修改友情链接'
-      }
-      return '添加友情链接'
-    },
     isUpdateMode() {
       return !!this.form.model.id
+    },
+    computedTeams() {
+      return this.teams.filter(item => {
+        return item !== ''
+      })
+    },
+    dragOptions() {
+      return {
+        animation: 200,
+        disabled: false,
+        ghostClass: 'ghost'
+      }
     }
   },
   created() {
@@ -349,33 +173,110 @@ export default {
   },
   methods: {
     ...mapActions(['refreshOptionsCache']),
+    getPriority() {
+      const params = []
+      for (const team of this.linkTeam) {
+        for (const link of team.links) {
+          link.team = team.team
+          params.push(link)
+        }
+      }
+      let priority = params.length
+      for (const link of params) {
+        link.priority = priority--
+      }
+      return params
+    },
+    handleUpdateInBatch() {
+      const params = this.getPriority()
+      apiClient.link.updateInBatch(params).finally(() => {
+        this.table.loading = false
+      })
+    },
+    removeConfirm() {
+      Modal.confirm({
+        title: '确定移出分组吗',
+        content: '移出最后一个链接后，该分组将消失。确定要移出分组吗？',
+        onCancel: () => {
+          this.recoverTeam()
+        },
+        onOk: () => {
+          this.removeTeam()
+        }
+      })
+    },
+    removeTeam() {
+      this.linkTeam.splice(this.linkTeam.indexOf(this.modal.lastRemove), 1)
+      this.modal.newIndex = null
+    },
+    recoverTeam() {
+      const recover = this.modal.lastAdd.links.splice(this.modal.newIndex, 1)
+      this.modal.lastRemove.links.push(recover[0])
+      this.modal.newIndex = null
+    },
+    handleRemove(evt, team) {
+      this.modal.lastRemove = team
+      if (team.links.length === 0) {
+        this.modal.newIndex = evt.newIndex
+        this.removeConfirm()
+      }
+      this.handleUpdateInBatch()
+    },
+    splitIntoTeam(data) {
+      const teamMap = new Map()
+      for (const link of data) {
+        if (teamMap.has(link.team)) {
+          const team = teamMap.get(link.team)
+          team.links.push(link)
+          if (team.priority < link.priority) {
+            team.priority = link.priority
+          }
+        } else {
+          const team = {
+            team: link.team,
+            priority: link.priority,
+            links: [link]
+          }
+          teamMap.set(link.team, team)
+        }
+      }
+      this.linkTeam = Array.from(teamMap.values()).sort((a, b) => {
+        return b.priority - a.priority
+      })
+    },
     handleListLinks() {
       this.table.loading = true
-      linkApi
-        .listAll()
+      apiClient.link
+        .list()
         .then(response => {
-          this.table.data = response.data.data
+          this.table.data = response.data
+          this.table.data.sort((a, b) => {
+            return b.priority - a.priority
+          })
+          this.splitIntoTeam(this.table.data)
         })
         .finally(() => {
-          setTimeout(() => {
-            this.table.loading = false
-          }, 200)
+          this.table.loading = false
         })
     },
     handleListLinkTeams() {
-      linkApi.listTeams().then(response => {
-        this.teams = response.data.data
+      apiClient.link.listTeams().then(response => {
+        this.teams = response.data
       })
     },
     handleListOptions() {
-      optionApi.listAll().then(response => {
-        this.optionsModal.data = response.data.data
+      apiClient.option.listAsMapViewByKeys(['links_title']).then(response => {
+        this.optionsModal.data = response.data
       })
     },
+    handleEdit(record) {
+      this.form.visible = true
+      this.form.model = Object.assign({}, record)
+    },
     handleDeleteLink(id) {
-      linkApi
+      apiClient.link
         .delete(id)
-        .then(response => {
+        .then(() => {
           this.$message.success('删除成功！')
         })
         .finally(() => {
@@ -383,56 +284,91 @@ export default {
           this.handleListLinkTeams()
         })
     },
-    handleParseUrl() {
-      linkApi.getByParse(this.form.model.url).then(response => {
-        this.form.model = response.data.data
-      })
-    },
     handleCreateOrUpdateLink() {
-      const _this = this
-      _this.$refs.linkForm.validate(valid => {
-        if (valid) {
-          _this.form.saving = true
-          if (_this.isUpdateMode) {
-            linkApi
-              .update(_this.form.model.id, _this.form.model)
-              .catch(() => {
-                this.form.errored = true
-              })
-              .finally(() => {
-                setTimeout(() => {
-                  _this.form.saving = false
-                }, 400)
-              })
+      this.form.saving = true
+      if (this.isUpdateMode) {
+        let toTeam, fromTeam, removeId
+        for (const team of this.linkTeam) {
+          if (toTeam && fromTeam) {
+            break
+          }
+          if (team.team === this.form.model.team) {
+            for (let link of team.links) {
+              if (link.id === this.form.model.id) {
+                // 分组没有改变， 直接update即可
+                apiClient.link
+                  .update(this.form.model.id, this.form.model)
+                  .catch(() => {
+                    this.form.errored = true
+                  })
+                  .finally(() => {
+                    setTimeout(() => {
+                      this.form.saving = false
+                    }, 400)
+                  })
+                return
+              }
+            }
+            toTeam = team
           } else {
-            linkApi
-              .create(_this.form.model)
-              .catch(() => {
-                this.form.errored = true
-              })
-              .finally(() => {
-                setTimeout(() => {
-                  _this.form.saving = false
-                }, 400)
-              })
+            for (let i = 0; i < team.links.length; i++) {
+              if (team.links[i].id === this.form.model.id) {
+                fromTeam = team
+                removeId = i
+                break
+              }
+            }
           }
         }
-      })
+        if (!toTeam) {
+          toTeam = {
+            links: [],
+            priority: -1,
+            team: this.form.model.team
+          }
+          this.linkTeam.push(toTeam)
+        }
+
+        toTeam.links.push(this.form.model)
+        fromTeam.links.splice(removeId, 1)
+        const params = this.getPriority()
+        apiClient.link
+          .updateInBatch(params)
+          .catch(() => {
+            this.form.errored = true
+          })
+          .finally(() => {
+            setTimeout(() => {
+              this.form.saving = false
+            }, 400)
+          })
+      } else {
+        apiClient.link
+          .create(this.form.model)
+          .catch(() => {
+            this.form.errored = true
+          })
+          .finally(() => {
+            setTimeout(() => {
+              this.form.saving = false
+            }, 400)
+          })
+      }
     },
     handleSavedCallback() {
-      const _this = this
-      if (_this.form.errored) {
-        _this.form.errored = false
+      if (this.form.errored) {
+        this.form.errored = false
       } else {
-        _this.form.model = {}
-        _this.handleListLinks()
-        _this.handleListLinkTeams()
+        this.form.model = {}
+        this.handleListLinks()
+        this.handleListLinkTeams()
+        this.form.visible = false
       }
     },
     handleSaveOptions() {
-      optionApi
-        .save(this.optionsModal.data)
-        .then(response => {
+      apiClient.option
+        .saveMapView(this.optionsModal.data)
+        .then(() => {
           this.$message.success('保存成功！')
           this.optionsModal.visible = false
         })
@@ -444,3 +380,11 @@ export default {
   }
 }
 </script>
+<style>
+.list-group {
+  min-height: 20px;
+}
+.list-group-item {
+  cursor: move;
+}
+</style>

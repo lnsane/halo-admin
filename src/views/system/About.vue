@@ -1,92 +1,61 @@
 <template>
-  <div>
+  <page-view>
     <a-row>
       <a-col :span="24">
-        <a-card
-          :bordered="false"
-          :bodyStyle="{ padding: '16px' }"
-        >
-          <a-card
-            :bordered="false"
-            class="environment-info"
-            :bodyStyle="{ padding: '16px' }"
-          >
+        <a-card :bodyStyle="{ padding: '16px' }" :bordered="false">
+          <a-card :bodyStyle="{ padding: '16px' }" :bordered="false" class="environment-info">
             <template slot="title">
               环境信息
-              <a
-                href="javascript:void(0);"
-                @click="handleCopyEnvironments"
-              >
+              <a-button class="!p-0" type="link" @click="handleCopyEnvironments">
                 <a-icon type="copy" />
-              </a>
+              </a-button>
             </template>
-            <a-popover
-              slot="extra"
-              placement="left"
-              :title="isLatest?'当前为最新版本':'有新版本'"
-            >
+            <a-popover slot="extra" :title="isLatest ? '当前为最新版本' : '有新版本'" placement="left">
               <template slot="content">
                 <p>{{ versionMessage }}</p>
-                <a-button
-                  type="dashed"
-                  @click="handleShowVersionContent"
-                >查看详情</a-button>
+                <a-button type="dashed" @click="handleShowVersionContent">查看详情</a-button>
               </template>
               <a-button
+                :icon="isLatest ? 'check-circle' : 'exclamation-circle'"
                 :loading="checking"
-                type="dashed"
                 shape="circle"
-                :icon="isLatest?'check-circle':'exclamation-circle'"
+                type="dashed"
               ></a-button>
             </a-popover>
 
-            <ul class="m-0 p-0 list-none">
+            <ul class="p-0 m-0 list-none">
               <li>版本：{{ environments.version }}</li>
               <li>数据库：{{ environments.database }}</li>
               <li>运行模式：{{ environments.mode }}</li>
+              <li>启用主题：{{ activatedTheme.name }}</li>
               <li>启动时间：{{ environments.startTime | moment }}</li>
             </ul>
-
-            <a
-              href="https://github.com/halo-dev"
-              target="_blank"
-              class="mr-3"
-            >开源组织
-              <a-icon type="link" /></a>
-            <a
-              href="https://halo.run"
-              target="_blank"
-              class="mr-3"
-            >用户文档
-              <a-icon type="link" /></a>
-            <a
-              href="https://bbs.halo.run"
-              target="_blank"
-              class="mr-3"
-            >在线社区
-              <a-icon type="link" /></a>
+            <a class="mr-3" href="https://halo.run" target="_blank"
+              >官网
+              <a-icon type="link" />
+            </a>
+            <a class="mr-3" href="https://docs.halo.run" target="_blank"
+              >文档
+              <a-icon type="link" />
+            </a>
+            <a class="mr-3" href="https://github.com/halo-dev" target="_blank"
+              >开源组织
+              <a-icon type="link" />
+            </a>
+            <a class="mr-3" href="https://bbs.halo.run" target="_blank"
+              >在线社区
+              <a-icon type="link" />
+            </a>
           </a-card>
 
-          <a-card
-            title="开发者"
-            :bordered="false"
-            :bodyStyle="{ padding: '16px' }"
-            :loading="contributorsLoading"
-          >
-            <a
-              :href="item.html_url"
-              v-for="(item,index) in contributors"
-              :key="index"
-              target="_blank"
-            >
-              <a-tooltip
-                placement="top"
-                :title="item.login"
-              >
+          <a-card :bodyStyle="{ padding: '16px' }" :bordered="false" :loading="contributorsLoading" title="开发者">
+            <a v-for="(item, index) in contributors" :key="index" :href="item.html_url" target="_blank">
+              <a-tooltip :title="item.login" placement="top">
                 <a-avatar
+                  :alt="item.login"
+                  :src="item.avatar_url | webpAvatarConvert"
+                  :style="{ marginRight: '10px', marginBottom: '10px' }"
                   size="large"
-                  :src="item.avatar_url"
-                  :style="{ marginRight: '10px',marginBottom: '10px'}"
                 />
               </a-tooltip>
             </a>
@@ -94,28 +63,42 @@
         </a-card>
       </a-col>
 
-      <a-col :span="24">
-      </a-col>
+      <a-col :span="24"></a-col>
     </a-row>
 
     <a-modal
       :title="versionContentModalTitle"
       :visible="versionContentVisible"
-      ok-text="查看更多"
-      @cancel="versionContentVisible=false"
-      @ok="handleOpenVersionUrl"
       :width="620"
+      ok-text="查看更多"
+      @cancel="versionContentVisible = false"
+      @ok="handleOpenVersionUrl"
     >
       <div v-html="versionContent"></div>
     </a-modal>
-  </div>
+  </page-view>
 </template>
 
 <script>
-import adminApi from '@/api/admin'
+import apiClient from '@/utils/api-client'
 import axios from 'axios'
-import marked from 'marked'
+import { marked } from 'marked'
+import { PageView } from '@/layouts'
+
+const axiosInstance = axios.create({
+  baseURL: 'https://api.github.com',
+  timeout: 10000,
+  headers: {
+    'Content-Type': 'application/json',
+    Accept: 'application/vnd.github.v3+json'
+  },
+  withCredentials: false
+})
+
 export default {
+  components: {
+    PageView
+  },
   data() {
     return {
       environments: {},
@@ -146,7 +129,8 @@ export default {
       checking: false,
       isLatest: false,
       latestData: {},
-      versionContentVisible: false
+      versionContentVisible: false,
+      activatedTheme: {}
     }
   },
   computed: {
@@ -157,7 +141,7 @@ export default {
     },
     versionContent() {
       if (this.latestData && this.latestData.body) {
-        return marked(this.latestData.body)
+        return marked.parse(this.latestData.body)
       } else {
         return '暂无内容'
       }
@@ -168,19 +152,24 @@ export default {
   },
   created() {
     this.getEnvironments()
+    this.handleGetActivatedTheme()
     this.fetchContributors()
   },
   methods: {
     async getEnvironments() {
-      await adminApi.environments().then(response => {
-        this.environments = response.data.data
-      })
+      const { data } = await apiClient.getEnvironment()
+      this.environments = data
       this.checkServerUpdate()
+    },
+    async handleGetActivatedTheme() {
+      const { data } = await apiClient.theme.getActivatedTheme()
+      this.activatedTheme = data
     },
     handleCopyEnvironments() {
       const text = `版本：${this.environments.version}
 数据库：${this.environments.database}
 运行模式：${this.environments.mode}
+启用主题：${this.activatedTheme.name}
 User Agent：${navigator.userAgent}`
       this.$copyText(text)
         .then(message => {
@@ -195,25 +184,23 @@ User Agent：${navigator.userAgent}`
     fetchContributors() {
       const _this = this
       _this.contributorsLoading = true
-      axios
-        .get('https://api.github.com/repos/halo-dev/halo/contributors')
+      axiosInstance
+        .get('/repos/halo-dev/halo/contributors?per_page=100')
         .then(response => {
           _this.contributors = response.data
         })
-        .catch(function(error) {
-          console.error('Fetch contributors error', error)
+        .catch(function (error) {
+          _this.$log.error('Fetch contributors error', error)
         })
         .finally(() => {
-          setTimeout(() => {
-            _this.contributorsLoading = false
-          }, 200)
+          _this.contributorsLoading = false
         })
     },
     checkServerUpdate() {
       const _this = this
       _this.checking = true
-      axios
-        .get('https://api.github.com/repos/halo-dev/halo/releases/latest')
+      axiosInstance
+        .get('/repos/halo-dev/halo/releases/latest')
         .then(response => {
           const data = response.data
           _this.latestData = data
@@ -249,13 +236,11 @@ User Agent：${navigator.userAgent}`
             }
           })
         })
-        .catch(function(error) {
-          console.error('Check update fail', error)
+        .catch(function (error) {
+          this.$log.error('Check update fail', error)
         })
         .finally(() => {
-          setTimeout(() => {
-            this.checking = false
-          }, 200)
+          this.checking = false
         })
     },
     handleShowVersionContent() {
@@ -277,6 +262,11 @@ User Agent：${navigator.userAgent}`
         return -1
       }
       return major * 1000000 + minor * 1000 + micro
+    }
+  },
+  filters: {
+    webpAvatarConvert(url) {
+      return url.replace('avatars.githubusercontent.com', 'avatars-githubusercontent.webp.se')
     }
   }
 }

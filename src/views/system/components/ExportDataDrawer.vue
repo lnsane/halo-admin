@@ -1,51 +1,35 @@
 <template>
   <a-drawer
-    title="数据导出"
-    :width="isMobile()?'100%':'480'"
-    closable
-    :visible="visible"
-    destroyOnClose
-    @close="onClose"
     :afterVisibleChange="handleAfterVisibleChanged"
+    :visible="visible"
+    :width="isMobile() ? '100%' : '480'"
+    closable
+    destroyOnClose
+    title="数据导出"
+    @close="onClose"
   >
-    <a-row
-      type="flex"
-      align="middle"
-    >
+    <a-row align="middle" type="flex">
       <a-col :span="24">
         <a-alert
-          message="注意：导出后的数据文件存储在临时文件中，重启服务器会造成备份文件的丢失，所以请尽快下载！"
           banner
           closable
+          message="注意：导出后的数据文件存储在临时文件中，重启服务器会造成备份文件的丢失，所以请尽快下载。"
         />
         <a-divider>历史文件</a-divider>
-        <a-list
-          itemLayout="vertical"
-          size="small"
-          :dataSource="files"
-          :loading="loading"
-        >
-          <a-list-item
-            slot="renderItem"
-            slot-scope="file"
-          >
+        <a-list :dataSource="files" :loading="loading" itemLayout="vertical" size="small">
+          <a-list-item slot="renderItem" slot-scope="file">
             <a-button
               slot="extra"
-              type="link"
-              style="color: red"
-              icon="delete"
               :loading="file.deleting"
+              icon="delete"
+              style="color: red"
+              type="link"
               @click="handleFileDeleteClick(file)"
-            >删除</a-button>
+              >删除
+            </a-button>
             <a-list-item-meta>
-              <a
-                slot="title"
-                :href="file.downloadLink"
-              >
-                <a-icon
-                  type="schedule"
-                  style="color: #52c41a"
-                />
+              <a slot="title" href="javascript:void(0)" @click="handleDownloadBackupFile(file)">
+                <a-icon style="color: #52c41a" type="schedule" />
                 {{ file.filename }}
               </a>
               <p slot="description">{{ file.updateTime | timeAgo }}/{{ file.fileSize | fileSizeFormat }}</p>
@@ -58,29 +42,25 @@
     <div class="bottom-control">
       <a-space>
         <ReactiveButton
-          type="primary"
-          icon="download"
-          @click="handleExportClick"
-          @callback="handleBackupedCallback"
-          :loading="backuping"
           :errored="backupErrored"
-          text="备份"
-          loadedText="备份成功"
+          :loading="backuping"
           erroredText="备份失败"
+          icon="download"
+          loadedText="备份成功"
+          text="备份"
+          type="primary"
+          @callback="handleBackupedCallback"
+          @click="handleExportClick"
         ></ReactiveButton>
-        <a-button
-          type="dashed"
-          icon="reload"
-          :loading="loading"
-          @click="handleListBackups"
-        >刷新</a-button>
+        <a-button :loading="loading" icon="reload" type="dashed" @click="handleListBackups">刷新</a-button>
       </a-space>
     </div>
   </a-drawer>
 </template>
 <script>
-import { mixin, mixinDevice } from '@/utils/mixin.js'
-import backupApi from '@/api/backup'
+import { mixin, mixinDevice } from '@/mixins/mixin.js'
+import apiClient from '@/utils/api-client'
+
 export default {
   name: 'ExportDataDrawer',
   mixins: [mixin, mixinDevice],
@@ -111,21 +91,19 @@ export default {
     },
     handleListBackups() {
       this.loading = true
-      backupApi
-        .listExportedData()
+      apiClient.backup
+        .listDataBackups()
         .then(response => {
-          this.files = response.data.data
+          this.files = response.data
         })
         .finally(() => {
-          setTimeout(() => {
-            this.loading = false
-          }, 200)
+          this.loading = false
         })
     },
     handleExportClick() {
       this.backuping = true
-      backupApi
-        .exportData()
+      apiClient.backup
+        .backupData()
         .catch(() => {
           this.backupErrored = true
         })
@@ -144,12 +122,29 @@ export default {
     },
     handleFileDeleteClick(file) {
       file.deleting = true
-      backupApi.deleteExportedData(file.filename).finally(() => {
+      apiClient.backup.deleteDataBackup(file.filename).finally(() => {
         setTimeout(() => {
           file.deleting = false
         }, 400)
         this.handleListBackups()
       })
+    },
+    handleDownloadBackupFile(item) {
+      apiClient.backup
+        .getDataBackup(item.filename)
+        .then(response => {
+          const downloadElement = document.createElement('a')
+          const href = new window.URL(response.data.downloadLink)
+          downloadElement.href = href
+          downloadElement.download = response.data.filename
+          document.body.appendChild(downloadElement)
+          downloadElement.click()
+          document.body.removeChild(downloadElement)
+          window.URL.revokeObjectURL(href)
+        })
+        .catch(() => {
+          this.$message.error('下载失败！')
+        })
     },
     onClose() {
       this.$emit('close', false)
